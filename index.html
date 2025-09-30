@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Scheduling System</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="container">
+                <h1>Exam Scheduling System</h1>
+                <div class="header-stats">
+                    <div class="stat-card">
+                        <span class="stat-value" id="totalStudents">0</span>
+                        <span class="stat-label">Students</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="totalCourses">0</span>
+                        <span class="stat-label">Courses</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="totalRooms">8</span>
+                        <span class="stat-label">Rooms</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="tab-navigation">
+            <div class="container">
+                <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+                <button class="tab-btn" data-tab="data-upload">Data Upload</button>
+                <button class="tab-btn" data-tab="algorithm">Algorithm Config</button>
+                <button class="tab-btn" data-tab="schedule">Generate Schedule</button>
+                <button class="tab-btn" data-tab="seating">Seating Assignment</button>
+                <button class="tab-btn" data-tab="rooms">Room Management</button>
+                <button class="tab-btn" data-tab="export">Export</button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="container">
+                <!-- Dashboard Tab -->
+                <div id="dashboard" class="tab-content active">
+                    <div class="dashboard-grid">
+                        <div class="card">
+                            <div class="card__body">
+                                <h3>System Overview</h3>
+                                <div class="chart-container" style="position: relative; height: 300px;">
+                                    <canvas id="overviewChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card__body">
+                                <h3>Recent Activity</h3>
+                                <div id="activityFeed">
+                                    <div class="activity-item">
+                                        <span class="status status--info">System Ready</span>
+                                        <span>Waiting for data upload</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card__body">
+                                <h3>Quick Actions</h3>
+                                <div class="quick-actions">
+                                    <button class="btn btn--primary btn--sm" onclick="loadSampleData()">Load Sample Data</button>
+                                    <button class="btn btn--secondary btn--sm" onclick="switchTab('data-upload')">Upload Files</button>
+                                    <button class="btn btn--outline btn--sm" onclick="generateQuickSchedule()">Quick Schedule</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Upload Tab -->
+                <div id="data-upload" class="tab-content">
+                    <div class="upload-grid">
+                        <div class="card">
+                            <div class="card__body">
+                                <h3>Upload Student Data</h3>
+                                <div class="upload-area" id="studentUpload">
+                                    <input type="file" id="studentFile" accept=".csv" class="file-input">
+                                    <label for="studentFile" class="file-label">
+                                        <div class="upload-text">Click to upload students.csv</div>
+                                        <small>CSV format: StudentID, Name, Course, Semester, Year</small>
+                                    </label>
+                                </div>
+                                <div id="studentPreview" class="data-preview hidden"></div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card__body">
+                                <h3>Upload Course Data</h3>
+                                <div class="upload-area" id="courseUpload">
+                                    <input type="file" id="courseFile" accept=".csv" class="file-input">
+                                    <label for="courseFile" class="file-label">
+                                        <div class="upload-text">Click to upload courses.csv</div>
+                                        <small>CSV format: CourseID, Name, Credits, Duration, Prerequisites</small>
+                                    </label>
+                                </div>
+                                <div id="coursePreview" class="data-preview hidden"></div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card__body">
+                                <h3>Upload Room Data</h3>
+                                <div class="upload-area" id="roomUpload">
+                                    <input type="file" id="roomFile" accept=".csv" class="file-input">
+                                    <label for="roomFile" class="file-label">
+                                        <div class="upload-text">Click to upload rooms.csv</div>
+                                        <small>CSV format: RoomID, Name, Capacity, Layout, Equipment</small>
+                                    </label>
+                                </div>
+                                <div id="roomPreview" class="data-preview hidden"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Algorithm Configuration Tab -->
+                <div id="algorithm" class="tab-content">
+                    <div class="algorithm-grid">
+                        <div class="card">
+                            <div class="card__body">
+                                <h3>Algorithm Selection</h3>
+                                <div class="form-group">
+                                    <label class="form-label">Choose Scheduling Algorithm:</label>
+                                    <select id="algorithmSelect" class="form-control">
+                                        <option value="graph-coloring">Graph Coloring Algorithm</option>
+                                        <option value="genetic">Genetic Algorithm</option>
+                                        <option value="csp">Constraint Satisfaction Problem</option>
+                                    </select>
+                                </div>
+                                <div id="algorithmDescription" class="algorithm-description">
+                                    <p>Graph Coloring Algorithm uses vertex coloring to assign time slots, ensuring no conflicting courses are scheduled simultaneously.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card__body">
+                                <h3>Algorithm Parameters</h3>
+                                <div id="algorithmParams">
+                                    <div class="param-group">
+                                        <label class="form-label">Time Slot Duration (minutes):</label>
+                                        <input type="range" id="timeSlotDuration" min="60" max="180" value="120" class="slider">
+                                        <span id="timeSlotValue">120</span>
+                                    </div>
+                                    <div class="param-group">
+                                        <label class="form-label">Break Duration (minutes):</label>
+                                        <input type="range" id="breakDuration" min="15" max="60" value="30" class="slider">
+                                        <span id="breakValue">30</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card__body">
+                                <h3>Constraints</h3>
+                                <div class="constraints-list">
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" id="noBackToBack" checked>
+                                        <span>No back-to-back courses for students</span>
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" id="roomCapacity" checked>
+                                        <span>Enforce room capacity limits</span>
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" id="equipmentReq" checked>
+                                        <span>Match equipment requirements</span>
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" id="socialDistancing">
+                                        <span>Social distancing (50% capacity)</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Schedule Generation Tab -->
+                <div id="schedule" class="tab-content">
+                    <div class="schedule-controls">
+                        <button id="generateBtn" class="btn btn--primary btn--lg">Generate Schedule</button>
+                        <button id="stopBtn" class="btn btn--secondary hidden">Stop Generation</button>
+                        <div class="progress-container hidden" id="progressContainer">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progressFill"></div>
+                            </div>
+                            <span id="progressText">0%</span>
+                        </div>
+                    </div>
+                    <div class="schedule-results" id="scheduleResults">
+                        <div class="card">
+                            <div class="card__body">
+                                <h3>Schedule Overview</h3>
+                                <div class="chart-container" style="position: relative; height: 300px;">
+                                    <canvas id="scheduleChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card__body">
+                                <h3>Generated Schedule</h3>
+                                <div class="schedule-table-container">
+                                    <table id="scheduleTable" class="schedule-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Time Slot</th>
+                                                <th>Course</th>
+                                                <th>Room</th>
+                                                <th>Students</th>
+                                                <th>Conflicts</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card overflow-card hidden" id="overflowCard">
+                            <div class="card__body">
+                                <h3>Overflow Handling</h3>
+                                <div id="overflowInfo"></div>
+                                <button class="btn btn--primary" onclick="handleOverflow()">Resolve Overflow</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seating Assignment Tab -->
+                <div id="seating" class="tab-content">
+                    <div class="seating-controls">
+                        <div class="filters">
+                            <select id="semesterFilter" class="form-control">
+                                <option value="">All Semesters</option>
+                                <option value="1">Semester 1</option>
+                                <option value="2">Semester 2</option>
+                                <option value="3">Semester 3</option>
+                                <option value="4">Semester 4</option>
+                            </select>
+                            <select id="yearFilter" class="form-control">
+                                <option value="">All Years</option>
+                                <option value="2024">2024</option>
+                                <option value="2025">2025</option>
+                                <option value="2026">2026</option>
+                            </select>
+                            <select id="courseFilter" class="form-control">
+                                <option value="">All Courses</option>
+                            </select>
+                        </div>
+                        <div class="seating-stats">
+                            <span>Selected: <span id="selectedCount">0</span> students</span>
+                            <button id="assignSeatsBtn" class="btn btn--primary">Assign Seats</button>
+                        </div>
+                    </div>
+                    <div class="seating-grid">
+                        <div class="card seating-diagram-card">
+                            <div class="card__body">
+                                <h3>Room Layout - <span id="currentRoomName">Select Room</span></h3>
+                                <div class="room-selector">
+                                    <select id="roomSelector" class="form-control">
+                                        <option value="">Select Room</option>
+                                    </select>
+                                </div>
+                                <div id="seatingDiagram" class="seating-diagram"></div>
+                                <div class="seating-legend">
+                                    <div class="legend-item">
+                                        <div class="seat occupied"></div>
+                                        <span>Occupied</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="seat blocked"></div>
+                                        <span>Blocked</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="seat available"></div>
+                                        <span>Available</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card__body">
+                                <h3>Seat Assignments</h3>
+                                <div id="seatAssignments" class="assignment-list"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Room Management Tab -->
+                <div id="rooms" class="tab-content">
+                    <div class="room-management-grid">
+                        <div class="card">
+                            <div class="card__body">
+                                <h3>Room Designer</h3>
+                                <div class="room-designer-controls">
+                                    <div class="form-group">
+                                        <label class="form-label">Room Name:</label>
+                                        <input type="text" id="roomName" class="form-control" placeholder="Enter room name">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Layout Type:</label>
+                                        <select id="layoutType" class="form-control">
+                                            <option value="grid">Grid Layout</option>
+                                            <option value="island">Island Layout</option>
+                                            <option value="curved">Curved Layout</option>
+                                        </select>
+                                    </div>
+                                    <div class="layout-params">
+                                        <div class="param-group">
+                                            <label class="form-label">Rows:</label>
+                                            <input type="number" id="roomRows" value="8" min="1" max="20" class="form-control">
+                                        </div>
+                                        <div class="param-group">
+                                            <label class="form-label">Columns:</label>
+                                            <input type="number" id="roomCols" value="10" min="1" max="20" class="form-control">
+                                        </div>
+                                    </div>
+                                    <button id="generateLayoutBtn" class="btn btn--primary">Generate Layout</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card__body">
+                                <h3>Layout Preview</h3>
+                                <div id="layoutPreview" class="layout-preview"></div>
+                                <div class="layout-stats">
+                                    <span>Total Capacity: <span id="layoutCapacity">0</span> seats</span>
+                                    <span>With Spacing: <span id="spacingCapacity">0</span> seats</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card__body">
+                                <h3>Room List</h3>
+                                <div id="roomList" class="room-list"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export Tab -->
+                <div id="export" class="tab-content">
+                    <div class="export-grid">
+                        <div class="card">
+                            <div class="card__body">
+                                <h3>Schedule Export</h3>
+                                <div class="export-options">
+                                    <button class="btn btn--primary" onclick="exportSchedulePDF()">
+                                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                            <path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H4zm0 1h8a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1z"/>
+                                        </svg>
+                                        Export PDF
+                                    </button>
+                                    <button class="btn btn--secondary" onclick="exportScheduleExcel()">
+                                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                            <path d="M5.884 6.68a.5.5 0 1 0-.768.64L7.349 10l-2.233 2.68a.5.5 0 0 0 .768.64L8 10.781l2.116 2.54a.5.5 0 0 0 .768-.641L8.651 10l2.233-2.68a.5.5 0 0 0-.768-.64L8 9.219l-2.116-2.54z"/>
+                                        </svg>
+                                        Export Excel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card__body">
+                                <h3>Seating Charts</h3>
+                                <div class="export-options">
+                                    <button class="btn btn--primary" onclick="exportSeatingPDF()">Export Seating PDF</button>
+                                    <button class="btn btn--secondary" onclick="printSeatingCharts()">Print Charts</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card__body">
+                                <h3>Data Backup</h3>
+                                <div class="export-options">
+                                    <button class="btn btn--outline" onclick="exportAllData()">Export All Data</button>
+                                    <button class="btn btn--outline" onclick="importData()">Import Data</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Modals -->
+        <div id="progressModal" class="modal hidden">
+            <div class="modal-content">
+                <h3>Processing...</h3>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="modalProgressFill"></div>
+                </div>
+                <p id="modalProgressText">Initializing...</p>
+            </div>
+        </div>
+
+        <div id="errorModal" class="modal hidden">
+            <div class="modal-content">
+                <h3>Error</h3>
+                <p id="errorMessage"></p>
+                <button class="btn btn--primary" onclick="closeModal('errorModal')">Close</button>
+            </div>
+        </div>
+
+        <div id="successModal" class="modal hidden">
+            <div class="modal-content">
+                <h3>Success</h3>
+                <p id="successMessage"></p>
+                <button class="btn btn--primary" onclick="closeModal('successModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
